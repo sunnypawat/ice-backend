@@ -60,7 +60,7 @@ import express from "express";
 import bodyParser from "body-parser";
 import mysql from "mysql";
 import bcrypt from "bcrypt";
-import marketController from "./controller/marketController.js";
+import { getTopLosersAndWinners } from "./controller/marketController.js";
 
 const app = express();
 const PORT = 8080;

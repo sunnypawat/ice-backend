@@ -1,6 +1,8 @@
+// marketController.js
 import axios from "axios";
 
-const MARKET_API_URL = "DAOPI17U24R9RJR5"; // Replace with the actual API endpoint
+const MARKET_API_URL =
+  "https://www.alphavantage.co/query?function=TIME_SERIES_INTRADAY&symbol=IBM&interval=5min&apikey=DAOPI17U24R9RJR5"; // Replace with the actual API endpoint
 
 async function getMarketData() {
   try {
@@ -13,18 +15,46 @@ async function getMarketData() {
 }
 
 function calculateTopPerformers(data, count, isLoser = false) {
-  const sortedData = data.sort((a, b) =>
-    isLoser ? a.performance - b.performance : b.performance - a.performance
+  const dataArray = Object.entries(data).map(([timestamp, values]) => ({
+    timestamp,
+    ...values,
+  }));
+
+  const sortedData = dataArray.sort((a, b) =>
+    isLoser ? a["4. close"] - b["4. close"] : b["4. close"] - a["4. close"]
   );
-  return sortedData.slice(0, count);
+
+  const topPerformers = sortedData.slice(0, count).map((item) => {
+    const openingPrice = parseFloat(item["1. open"]);
+    const closingPrice = parseFloat(item["4. close"]);
+
+    const isValidPrices = !isNaN(openingPrice) && !isNaN(closingPrice);
+
+    const percentageChange = isValidPrices
+      ? ((closingPrice - openingPrice) / openingPrice) * 100
+      : 0;
+
+    return {
+      symbol: item["2. symbol"],
+      timestamp: item.timestamp,
+      percentageChange: isNaN(percentageChange)
+        ? "0.00"
+        : percentageChange.toFixed(2),
+    };
+  });
+
+  return topPerformers;
 }
 
-// Default export for the marketController module
-export default async function getTopLosersAndWinners() {
+// Named export for getTopLosersAndWinners
+export async function getTopLosersAndWinners() {
   try {
     const marketData = await getMarketData();
 
-    // Assuming marketData has a "performance" property for each stock.
+    // Log the marketData to inspect its structure
+    //console.log("Market Data:", marketData);
+
+    // Assuming marketData has an array of items, each with a "performance" property.
     const topLosers = calculateTopPerformers(marketData, 5, true);
     const topWinners = calculateTopPerformers(marketData, 5, false);
 
