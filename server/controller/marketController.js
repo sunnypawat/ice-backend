@@ -1,66 +1,187 @@
 // marketController.js
 import axios from "axios";
+import { promisify } from "util";
 
-const MARKET_API_URL =
-  "https://www.alphavantage.co/query?function=TIME_SERIES_INTRADAY&symbol=IBM&interval=5min&apikey=DAOPI17U24R9RJR5"; // Replace with the actual API endpoint
+// Replace with your actual API key
+const API_KEY = "DAOPI17U24R9RJR5";
+const RATE_LIMIT_DELAY_MS = 12000; // Alpha Vantage free tier usually allows 5 API requests per minute
+const delay = promisify(setTimeout);
 
-async function getMarketData() {
+const NASDAQ_100_SYMBOLS = [
+  "MSFT",
+  "AAPL",
+  "NVDA",
+  "AMZN",
+  "META",
+  // "AVGO",
+  // "TSLA",
+  // "COST",
+  // "GOOGL",
+  // "GOOG",
+  // "AMD",
+  // "NFLX",
+  // "ADBE",
+  // "PEP",
+  // "CSCO",
+  // "TMUS",
+  // "INTU",
+  // "INTC",
+  // "QCOM",
+  // "AMAT",
+  // "CMCSA",
+  // "AMGN",
+  // "TXN",
+  // "ISRG",
+  // "HON",
+  // "LRCX",
+  // "BKNG",
+  // "VRTX",
+  // "SBUX",
+  // "REGN",
+  // "ADP",
+  // "MDLZ",
+  // "MU",
+  // "PANW",
+  // "ADI",
+  // "KLAC",
+  // "GILD",
+  // "SNPS",
+  // "PDD",
+  // "ASML",
+  // "CDNS",
+  // "MELI",
+  // "CSX",
+  // "MAR",
+  // "CRWD",
+  // "ABNB",
+  // "CTAS",
+  // "WDAY",
+  // "PYPL",
+  // "NXPI",
+  // "ORLY",
+  // "MRVL",
+  // "PCAR",
+  // "ROP",
+  // "MNST",
+  // "LULU",
+  // "ADSK",
+  // "FTNT",
+  // "CPRT",
+  // "ROST",
+  // "ODFL",
+  // "IDXX",
+  // "DXCM",
+  // "MCHP",
+  // "PAYX",
+  // "DASH",
+  // "KHC",
+  // "CHTR",
+  // "CEG",
+  // "AEP",
+  // "FAST",
+  // "GEHC",
+  // "KDP",
+  // "CTSH",
+  // "DDOG",
+  // "AZN",
+  // "EA",
+  // "TTD",
+  // "MRNA",
+  // "ZS",
+  // "EXC",
+  // "VRSK",
+  // "CSGP",
+  // "ON",
+  // "CDW",
+  // "CCEP",
+  // "BIIB",
+  // "MDB",
+  // "XEL",
+  // "DLTR",
+  // "TEAM",
+  // "FANG",
+  // "BKR",
+  // "GFS",
+  // "ANSS",
+  // "SPLK",
+  // "TTWO",
+  // "ILMN",
+  // "WBD",
+  // "SIRI",
+  // "WBA",
+];
+
+async function getMarketData(symbol) {
+  const marketApiUrl = `https://www.alphavantage.co/query?function=TIME_SERIES_INTRADAY&symbol=${symbol}&interval=5min&apikey=${API_KEY}`;
   try {
-    const response = await axios.get(MARKET_API_URL);
-    return response.data; // Adjust based on the structure of the API response
+    const response = await axios.get(marketApiUrl);
+    return response.data;
   } catch (error) {
-    console.error("Error fetching market data:", error);
+    console.error(`Error fetching market data for ${symbol}:`, error);
     throw error;
   }
 }
 
-function calculateTopPerformers(data, count, isLoser = false) {
-  const dataArray = Object.entries(data).map(([timestamp, values]) => ({
-    timestamp,
-    ...values,
-  }));
+async function calculateTopPerformers(count) {
+  let allStockData = {};
 
-  const sortedData = dataArray.sort((a, b) =>
-    isLoser ? a["4. close"] - b["4. close"] : b["4. close"] - a["4. close"]
-  );
+  for (let symbol of NASDAQ_100_SYMBOLS) {
+    try {
+      const data = await getMarketData(symbol);
+      allStockData[symbol] = data["Time Series (5min)"];
 
-  const topPerformers = sortedData.slice(0, count).map((item) => {
-    const openingPrice = parseFloat(item["1. open"]);
-    const closingPrice = parseFloat(item["4. close"]);
+      // Respect the API rate limit: wait for RATE_LIMIT_DELAY_MS between requests
+      await delay(RATE_LIMIT_DELAY_MS);
+    } catch (error) {
+      console.warn(
+        `An error occurred while fetching data for ${symbol}:`,
+        error
+      );
+      // Optional: Decide how to handle individual symbol errors
+    }
+  }
 
-    const isValidPrices = !isNaN(openingPrice) && !isNaN(closingPrice);
+  // Now we process the 'allStockData' to find the top performers
+  let performers = [];
+  for (let [symbol, timeSeries] of Object.entries(allStockData)) {
+    if (!timeSeries) continue; // If no data was fetched for a symbol, skip it
 
-    const percentageChange = isValidPrices
-      ? ((closingPrice - openingPrice) / openingPrice) * 100
-      : 0;
+    for (let [timestamp, data] of Object.entries(timeSeries)) {
+      const openPrice = parseFloat(data["1. open"]);
+      const closePrice = parseFloat(data["4. close"]);
+      const percentageChange = ((closePrice - openPrice) / openPrice) * 100;
 
-    return {
-      symbol: item["2. symbol"],
-      timestamp: item.timestamp,
-      percentageChange: isNaN(percentageChange)
-        ? "0.00"
-        : percentageChange.toFixed(2),
-    };
-  });
+      performers.push({
+        symbol,
+        timestamp,
+        open: data["1. open"],
+        close: data["4. close"],
+        percentageChange: parseFloat(percentageChange.toFixed(2)),
+      });
+    }
+  }
 
-  return topPerformers;
+  performers.sort((a, b) => b.percentageChange - a.percentageChange);
+
+  // Get top 'n' winners and losers
+  const topWinners = performers.slice(0, count);
+  const topLosers = performers.slice(-count).reverse();
+
+  return { topWinners, topLosers };
 }
 
-// Named export for getTopLosersAndWinners
 export async function getTopLosersAndWinners() {
   try {
-    const marketData = await getMarketData();
-
-    // Log the marketData to inspect its structure
-    //console.log("Market Data:", marketData);
-
-    // Assuming marketData has an array of items, each with a "performance" property.
-    const topLosers = calculateTopPerformers(marketData, 5, true);
-    const topWinners = calculateTopPerformers(marketData, 5, false);
-
-    return { topLosers, topWinners };
+    const { topWinners, topLosers } = await calculateTopPerformers(5);
+    return { topWinners, topLosers };
   } catch (error) {
     console.error("Error getting top losers and winners:", error);
     throw error;
   }
 }
+
+// Usage:
+// (async () => {
+//   const results = await getTopLosersAndWinners();
+//   console.log(results);
+// })();
