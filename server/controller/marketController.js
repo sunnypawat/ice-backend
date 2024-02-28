@@ -1,187 +1,56 @@
 // marketController.js
-import axios from "axios";
-import { promisify } from "util";
+import fs from "fs";
+import path from "path";
+import { parse } from "csv-parse/sync"; // Correctly import the parse function
+import { NASDAQ_100_SYMBOLS } from "./dataFetcher.js";
 
-// Replace with your actual API key
-const API_KEY = "DAOPI17U24R9RJR5";
-const RATE_LIMIT_DELAY_MS = 12000; // Alpha Vantage free tier usually allows 5 API requests per minute
-const delay = promisify(setTimeout);
+const PATH_TO_CSV_FILES = path.resolve("data"); // Assuming 'data' is in the root, adjust if necessary
 
-const NASDAQ_100_SYMBOLS = [
-  "MSFT",
-  "AAPL",
-  "NVDA",
-  "AMZN",
-  "META",
-  // "AVGO",
-  // "TSLA",
-  // "COST",
-  // "GOOGL",
-  // "GOOG",
-  // "AMD",
-  // "NFLX",
-  // "ADBE",
-  // "PEP",
-  // "CSCO",
-  // "TMUS",
-  // "INTU",
-  // "INTC",
-  // "QCOM",
-  // "AMAT",
-  // "CMCSA",
-  // "AMGN",
-  // "TXN",
-  // "ISRG",
-  // "HON",
-  // "LRCX",
-  // "BKNG",
-  // "VRTX",
-  // "SBUX",
-  // "REGN",
-  // "ADP",
-  // "MDLZ",
-  // "MU",
-  // "PANW",
-  // "ADI",
-  // "KLAC",
-  // "GILD",
-  // "SNPS",
-  // "PDD",
-  // "ASML",
-  // "CDNS",
-  // "MELI",
-  // "CSX",
-  // "MAR",
-  // "CRWD",
-  // "ABNB",
-  // "CTAS",
-  // "WDAY",
-  // "PYPL",
-  // "NXPI",
-  // "ORLY",
-  // "MRVL",
-  // "PCAR",
-  // "ROP",
-  // "MNST",
-  // "LULU",
-  // "ADSK",
-  // "FTNT",
-  // "CPRT",
-  // "ROST",
-  // "ODFL",
-  // "IDXX",
-  // "DXCM",
-  // "MCHP",
-  // "PAYX",
-  // "DASH",
-  // "KHC",
-  // "CHTR",
-  // "CEG",
-  // "AEP",
-  // "FAST",
-  // "GEHC",
-  // "KDP",
-  // "CTSH",
-  // "DDOG",
-  // "AZN",
-  // "EA",
-  // "TTD",
-  // "MRNA",
-  // "ZS",
-  // "EXC",
-  // "VRSK",
-  // "CSGP",
-  // "ON",
-  // "CDW",
-  // "CCEP",
-  // "BIIB",
-  // "MDB",
-  // "XEL",
-  // "DLTR",
-  // "TEAM",
-  // "FANG",
-  // "BKR",
-  // "GFS",
-  // "ANSS",
-  // "SPLK",
-  // "TTWO",
-  // "ILMN",
-  // "WBD",
-  // "SIRI",
-  // "WBA",
-];
-
-async function getMarketData(symbol) {
-  const marketApiUrl = `https://www.alphavantage.co/query?function=TIME_SERIES_INTRADAY&symbol=${symbol}&interval=5min&apikey=${API_KEY}`;
+const readCSV = (symbol) => {
   try {
-    const response = await axios.get(marketApiUrl);
-    return response.data;
+    const filePath = path.join(PATH_TO_CSV_FILES, `${symbol}.csv`);
+    const data = fs.readFileSync(filePath);
+    return parse(data, {
+      columns: true,
+      skip_empty_lines: true,
+    });
   } catch (error) {
-    console.error(`Error fetching market data for ${symbol}:`, error);
-    throw error;
+    console.error(`Error reading CSV for ${symbol}:`, error);
+    throw new Error(`Cannot read CSV for symbol: ${symbol}`);
   }
-}
+};
 
-async function calculateTopPerformers(count) {
-  let allStockData = {};
+const calculateTopPerformers = (priceData, count) => {
+  // ... function logic as previously defined
+  // You need to implement this based on how you want to structure your price data
+};
 
-  for (let symbol of NASDAQ_100_SYMBOLS) {
-    try {
-      const data = await getMarketData(symbol);
-      allStockData[symbol] = data["Time Series (5min)"];
+export const getTopLosersAndWinners = async (count = 5) => {
+  let allPerformances = [];
 
-      // Respect the API rate limit: wait for RATE_LIMIT_DELAY_MS between requests
-      await delay(RATE_LIMIT_DELAY_MS);
-    } catch (error) {
-      console.warn(
-        `An error occurred while fetching data for ${symbol}:`,
-        error
-      );
-      // Optional: Decide how to handle individual symbol errors
-    }
-  }
+  for (const symbol of NASDAQ_100_SYMBOLS) {
+    const records = readCSV(symbol);
+    // Remember to transform your record into a proper format if needed
 
-  // Now we process the 'allStockData' to find the top performers
-  let performers = [];
-  for (let [symbol, timeSeries] of Object.entries(allStockData)) {
-    if (!timeSeries) continue; // If no data was fetched for a symbol, skip it
-
-    for (let [timestamp, data] of Object.entries(timeSeries)) {
-      const openPrice = parseFloat(data["1. open"]);
-      const closePrice = parseFloat(data["4. close"]);
-      const percentageChange = ((closePrice - openPrice) / openPrice) * 100;
-
-      performers.push({
-        symbol,
-        timestamp,
-        open: data["1. open"],
-        close: data["4. close"],
-        percentageChange: parseFloat(percentageChange.toFixed(2)),
-      });
-    }
+    allPerformances.push(
+      ...records.map((record) => ({
+        symbol: symbol,
+        open: parseFloat(record["1. open"]),
+        close: parseFloat(record["4. close"]),
+        percentageChange: (
+          ((parseFloat(record["4. close"]) - parseFloat(record["1. open"])) /
+            parseFloat(record["1. open"])) *
+          100
+        ).toFixed(2),
+      }))
+    );
   }
 
-  performers.sort((a, b) => b.percentageChange - a.percentageChange);
+  // Sort allPerformances by percentageChange, then get the top and bottom 'count' performers
+  allPerformances.sort((a, b) => b.percentageChange - a.percentageChange);
 
-  // Get top 'n' winners and losers
-  const topWinners = performers.slice(0, count);
-  const topLosers = performers.slice(-count).reverse();
+  const topWinners = allPerformances.slice(0, count);
+  const topLosers = allPerformances.slice(-count).reverse();
 
   return { topWinners, topLosers };
-}
-
-export async function getTopLosersAndWinners() {
-  try {
-    const { topWinners, topLosers } = await calculateTopPerformers(5);
-    return { topWinners, topLosers };
-  } catch (error) {
-    console.error("Error getting top losers and winners:", error);
-    throw error;
-  }
-}
-
-// Usage:
-// (async () => {
-//   const results = await getTopLosersAndWinners();
-//   console.log(results);
-// })();
+};
