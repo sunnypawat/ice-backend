@@ -149,6 +149,42 @@ app.get("/api/fetch-nasdaq-data", async (req, res) => {
   }
 });
 
+// GET route to retrieve news
+app.get("/api/news", (req, res) => {
+  connection.query(
+    "SELECT * FROM NewsPage ORDER BY Date DESC",
+    (err, results) => {
+      if (err) {
+        res.status(500).json({ error: "Internal Server Error", details: err });
+      } else {
+        res.status(200).json(results);
+      }
+    }
+  );
+});
+
+// POST route to create news
+app.post("/api/news", (req, res) => {
+  const { title, subtitle, description, date, author, picture } = req.body;
+  // Construct the INSERT statement with proper escaping
+  const query =
+    "INSERT INTO NewsPage (Title, Subtitle, Description, Date, Author, Picture) VALUES (?, ?, ?, ?, ?, ?)";
+
+  // Use array to avoid SQL injection
+  const values = [title, subtitle, description, date, author, picture];
+
+  connection.query(query, values, (err, results) => {
+    if (err) {
+      res.status(500).json({ error: "Internal Server Error", details: err });
+    } else {
+      res.status(201).json({
+        message: "News added successfully",
+        insertId: results.insertId,
+      });
+    }
+  });
+});
+
 // Home route
 app.get("/api/home", (req, res) => {
   res.json({ message: "hello world!" });
