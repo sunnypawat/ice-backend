@@ -151,18 +151,17 @@ app.get("/api/fetch-nasdaq-data", async (req, res) => {
 
 // GET route to retrieve news
 app.get("/api/news", (req, res) => {
-  connection.query(
-    "SELECT * FROM NewsPage ORDER BY Date DESC",
-    (err, results) => {
-      if (err) {
-        res.status(500).json({ error: "Internal Server Error", details: err });
-      } else {
-        res.status(200).json(results);
-      }
-    }
-  );
-});
+  const query = "SELECT * FROM NewsPage ORDER BY Date DESC LIMIT 10";
 
+  connection.query(query, (err, results) => {
+    if (err) {
+      console.error("Error fetching news:", err);
+      res.status(500).json({ error: "Internal Server Error" });
+    } else {
+      res.status(200).json(results);
+    }
+  });
+});
 // POST route to create news
 app.post("/api/news", (req, res) => {
   const { title, subtitle, description, date, author, picture } = req.body;
