@@ -1,10 +1,15 @@
 // marketController.js
 import fs from "fs";
 import path from "path";
-import { parse } from "csv-parse/sync"; // Correctly import the parse function
+import { parse } from "csv-parse/sync";
+import { fileURLToPath } from "url";
 import { NASDAQ_100_SYMBOLS } from "./dataFetcher.js";
 
-const PATH_TO_CSV_FILES = path.resolve("data"); // Assuming 'data' is in the root, adjust if necessary
+// Convert the URL of the current module ('marketController.js') to a file path
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+
+// Resolve the path to the 'data' directory
+const PATH_TO_CSV_FILES = path.join(__dirname, "data");
 
 const readCSV = (symbol) => {
   try {
