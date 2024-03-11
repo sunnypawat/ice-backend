@@ -68,6 +68,102 @@ app.get("/api/articles", async (req, res) => {
   }
 });
 
+// Add Course
+app.post("/api/courses", async (req, res) => {
+  try {
+    const { title, description, picture } = req.body;
+
+    const query =
+      "INSERT INTO Courses (title, description, picture) VALUES (?, ?, ?)";
+
+    connection.query(query, [title, description, picture], (error, results) => {
+      if (error) {
+        console.error("Error adding course:", error);
+        res.status(500).json({ error: "Internal Server Error" });
+      } else {
+        res.status(201).json({
+          message: "Course added successfully",
+          courseId: results.insertId,
+        });
+      }
+    });
+  } catch (error) {
+    console.error("Error adding course:", error);
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+});
+
+// Add Subcourse (Subdivision)
+app.post("/api/subcourses", async (req, res) => {
+  try {
+    const { courseId, subdivisionTitle, subdivisionDescription } = req.body;
+
+    const query =
+      "INSERT INTO Subdivisions (course_id, subdivision_title, subdivision_description) VALUES (?, ?, ?)";
+
+    connection.query(
+      query,
+      [courseId, subdivisionTitle, subdivisionDescription],
+      (error, results) => {
+        if (error) {
+          console.error("Error adding subcourse:", error);
+          res.status(500).json({ error: "Internal Server Error" });
+        } else {
+          res.status(201).json({
+            message: "Subcourse added successfully",
+            subcourseId: results.insertId,
+          });
+        }
+      }
+    );
+  } catch (error) {
+    console.error("Error adding subcourse:", error);
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+});
+
+// Get Course with Modules
+app.get("/api/courses/:courseId", async (req, res) => {
+  try {
+    const courseId = req.params.courseId;
+
+    const query = `
+        SELECT Courses.title as courseTitle, Courses.description as courseDescription, Courses.picture as coursePicture,
+               Subdivisions.subdivision_title as moduleTitle, Subdivisions.subdivision_description as moduleDescription
+        FROM Courses
+        LEFT JOIN Subdivisions ON Courses.id = Subdivisions.course_id
+        WHERE Courses.id = ?`;
+
+    connection.query(query, [courseId], (error, results) => {
+      if (error) {
+        console.error("Error fetching course details:", error);
+        res.status(500).json({ error: "Internal Server Error" });
+      } else {
+        if (results.length === 0) {
+          res.status(404).json({ error: "Course not found" });
+        } else {
+          const courseDetails = {
+            courseTitle: results[0].courseTitle,
+            courseDescription: results[0].courseDescription,
+            coursePicture: results[0].coursePicture,
+            modules: results
+              .filter((result) => result.moduleTitle !== null)
+              .map((result) => ({
+                moduleTitle: result.moduleTitle,
+                moduleDescription: result.moduleDescription,
+              })),
+          };
+
+          res.status(200).json(courseDetails);
+        }
+      }
+    });
+  } catch (error) {
+    console.error("Error fetching course details:", error);
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+});
+
 // Create User
 app.post("/api/users", async (req, res) => {
   try {
