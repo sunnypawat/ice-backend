@@ -131,9 +131,9 @@ app.post("/api/login", async (req, res) => {
 app.get("/api/nasdaq", async (req, res) => {
   try {
     const { topLosers, topWinners } = await getTopLosersAndWinners();
-    res.status(200).json({ topLosers, topWinners });
+    res.status(200).json({ topWinners, topLosers });
   } catch (error) {
-    console.error("Error in /api/nasdaq", error);
+    console.error("Error in /api/nasdaq:", error);
     res.status(500).json({ error: "Internal Server Error" });
   }
 });
