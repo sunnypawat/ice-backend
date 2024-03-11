@@ -2,6 +2,8 @@ import express from "express";
 import bodyParser from "body-parser";
 import mysql from "mysql";
 import bcrypt from "bcrypt";
+import { getTopLosersAndWinners } from "./controller/marketController.js";
+import { fetchAllData } from "./controller/dataFetcher.js"; // import the function
 
 const app = express();
 const PORT = 8080;
@@ -124,9 +126,62 @@ app.post("/api/login", async (req, res) => {
   }
 });
 
-// Home route
-app.get("/api/home", (req, res) => {
-  res.json({ message: "hello world!" });
+// Market API
+// Get top losers and winners for NASDAQ 100
+app.get("/api/nasdaq", async (req, res) => {
+  try {
+    const { topLosers, topWinners } = await getTopLosersAndWinners();
+    res.status(200).json({ topWinners, topLosers });
+  } catch (error) {
+    console.error("Error in /api/nasdaq:", error);
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+});
+
+// Add a new route to trigger data fetching
+app.get("/api/fetch-nasdaq-data", async (req, res) => {
+  try {
+    await fetchAllData();
+    res.status(200).json({ message: "NASDAQ data fetched successfully" });
+  } catch (error) {
+    console.error("Error fetching NASDAQ data:", error);
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+});
+
+// GET route to retrieve news
+app.get("/api/news", (req, res) => {
+  const query = "SELECT * FROM NewsPage ORDER BY Date DESC LIMIT 10";
+
+  connection.query(query, (err, results) => {
+    if (err) {
+      console.error("Error fetching news:", err);
+      res.status(500).json({ error: "Internal Server Error" });
+    } else {
+      res.status(200).json(results);
+    }
+  });
+});
+// POST route to create news
+app.post("/api/news", (req, res) => {
+  const { title, subtitle, description, date, author, picture } = req.body;
+  // Construct the INSERT statement with proper escaping
+  const query =
+    "INSERT INTO NewsPage (Title, Subtitle, Description, Date, Author, Picture) VALUES (?, ?, ?, ?, ?, ?)";
+
+  // Use array to avoid SQL injection
+  const values = [title, subtitle, description, date, author, picture];
+
+  connection.query(query, values, (err, results) => {
+    if (err) {
+      res.status(500).json({ error: "Internal Server Error", details: err });
+    } else {
+      res.status(201).json({
+        message: "News added successfully",
+        insertId: results.insertId,
+      });
+    }
+  });
 });
 
 // Home route
