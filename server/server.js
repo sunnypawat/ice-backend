@@ -97,45 +97,36 @@ app.post("/api/courses", async (req, res) => {
   }
 });
 
-// Add Subcourse (Subdivision)
-app.post("/api/subcourses", async (req, res) => {
+// Get All Courses
+app.get("/api/courses", async (req, res) => {
   try {
-    const { courseId, subdivisionTitle, subdivisionDescription } = req.body;
+    const query = "SELECT * FROM Courses";
 
-    const query =
-      "INSERT INTO Subdivisions (course_id, subdivision_title, subdivision_description) VALUES (?, ?, ?)";
-
-    connection.query(
-      query,
-      [courseId, subdivisionTitle, subdivisionDescription],
-      (error, results) => {
-        if (error) {
-          console.error("Error adding subcourse:", error);
-          res.status(500).json({ error: "Internal Server Error" });
-        } else {
-          res.status(201).json({
-            message: "Subcourse added successfully",
-            subcourseId: results.insertId,
-          });
-        }
+    connection.query(query, (error, results) => {
+      if (error) {
+        console.error("Error fetching courses:", error);
+        res.status(500).json({ error: "Internal Server Error" });
+      } else {
+        res.status(200).json(results);
       }
-    );
+    });
   } catch (error) {
-    console.error("Error adding subcourse:", error);
+    console.error("Server error while getting courses:", error);
     res.status(500).json({ error: "Internal Server Error" });
   }
 });
 
-// Get Course with Modules
+// Get One Course
 app.get("/api/courses/:courseId", async (req, res) => {
   try {
     const courseId = req.params.courseId;
 
     const query = `
         SELECT Courses.title as courseTitle, Courses.description as courseDescription, Courses.picture as coursePicture,
-               Subdivisions.subdivision_title as moduleTitle, Subdivisions.subdivision_description as moduleDescription
+               Modules.subdivision_title as moduleTitle, Modules
+               .subdivision_description as moduleDescription
         FROM Courses
-        LEFT JOIN Subdivisions ON Courses.id = Subdivisions.course_id
+        LEFT JOIN Modules ON Courses.id = Modules.course_id
         WHERE Courses.id = ?`;
 
     connection.query(query, [courseId], (error, results) => {
@@ -164,6 +155,100 @@ app.get("/api/courses/:courseId", async (req, res) => {
     });
   } catch (error) {
     console.error("Error fetching course details:", error);
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+});
+
+// Add Module (Subdivision)
+app.post("/api/module", async (req, res) => {
+  try {
+    const { courseId, subdivisionTitle, subdivisionDescription } = req.body;
+
+    const query =
+      "INSERT INTO Modules (course_id, subdivision_title, subdivision_description) VALUES (?, ?, ?)";
+
+    connection.query(
+      query,
+      [courseId, subdivisionTitle, subdivisionDescription],
+      (error, results) => {
+        if (error) {
+          console.error("Error adding subcourse:", error);
+          res.status(500).json({ error: "Internal Server Error" });
+        } else {
+          res.status(201).json({
+            message: "Subcourse added successfully",
+            subcourseId: results.insertId,
+          });
+        }
+      }
+    );
+  } catch (error) {
+    console.error("Error adding subcourse:", error);
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+});
+
+// Add Content
+app.post("/api/contents", async (req, res) => {
+  try {
+    const { moduleId, contentTitle, contentDescription, body, video } =
+      req.body;
+
+    const query =
+      "INSERT INTO Content (module_id, content_title, content_description, body, video) VALUES (?, ?, ?, ?, ?)";
+
+    connection.query(
+      query,
+      [moduleId, contentTitle, contentDescription, body, video],
+      (error, results) => {
+        if (error) {
+          console.error("Error adding content:", error);
+          res.status(500).json({ error: "Internal Server Error" });
+        } else {
+          res.status(201).json({
+            message: "Content added successfully",
+            contentId: results.insertId,
+          });
+        }
+      }
+    );
+  } catch (error) {
+    console.error("Error adding content:", error);
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+});
+
+// Get All Content for a Specific Module
+app.get("/api/modules/:moduleId", async (req, res) => {
+  try {
+    const moduleId = req.params.moduleId;
+
+    const query = `
+      SELECT
+        ct.id as contentId,
+        ct.content_title as contentTitle,
+        ct.content_description as contentDescription,
+        ct.body as contentBody,
+        ct.video as contentVideo,
+        ct.created_at as contentCreatedAt,
+        ct.updated_at as contentUpdatedAt
+      FROM Content ct
+      WHERE ct.module_id = ?`;
+
+    connection.query(query, [moduleId], (error, results) => {
+      if (error) {
+        console.error("Error fetching content for module:", error);
+        res.status(500).json({ error: "Internal Server Error" });
+      } else {
+        if (results.length === 0) {
+          res.status(404).json({ message: "No content found for this module" });
+        } else {
+          res.status(200).json({ contents: results });
+        }
+      }
+    });
+  } catch (error) {
+    console.error("Server error while getting contents for a module:", error);
     res.status(500).json({ error: "Internal Server Error" });
   }
 });

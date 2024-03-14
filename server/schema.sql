@@ -23,3 +23,19 @@ CREATE TABLE NewsPage (
     Author VARCHAR(100),
     Picture VARCHAR(255)
 );
+
+CREATE TABLE Courses (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    title VARCHAR(50) NOT NULL,
+    description TEXT,
+    picture VARCHAR(255)
+);
+
+CREATE TABLE Subdivisions (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    course_id INT,
+    subdivision_title VARCHAR(50) NOT NULL,
+    subdivision_description TEXT,
+    FOREIGN KEY (course_id) REFERENCES Courses(id)
+);
+
