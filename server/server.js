@@ -2,7 +2,11 @@ import express from "express";
 import bodyParser from "body-parser";
 import mysql from "mysql";
 import bcrypt from "bcrypt";
-import { getTopLosersAndWinners } from "./controller/marketController.js";
+import {
+  getTopLosersAndWinners,
+  getTopVolumeStocks,
+  getTopVolumeTraded,
+} from "./controller/marketController.js";
 import { fetchAllData } from "./controller/dataFetcher.js"; // import the function
 
 const app = express();
@@ -224,12 +228,22 @@ app.post("/api/login", async (req, res) => {
 
 // Market API
 // Get top losers and winners for NASDAQ 100
-app.get("/api/nasdaq", async (req, res) => {
+app.get("/api/stocks/movers", async (req, res) => {
   try {
     const { topLosers, topWinners } = await getTopLosersAndWinners();
     res.status(200).json({ topWinners, topLosers });
   } catch (error) {
     console.error("Error in /api/nasdaq:", error);
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+});
+
+app.get("/api/stocks/top-volume", async (req, res) => {
+  try {
+    const topVolumeTraded = await getTopVolumeTraded();
+    res.status(200).json({ topVolumeTraded });
+  } catch (error) {
+    console.error("Error in /api/stocks/top-volume-traded", error);
     res.status(500).json({ error: "Internal Server Error" });
   }
 });
@@ -258,6 +272,7 @@ app.get("/api/news", (req, res) => {
     }
   });
 });
+
 // POST route to create news
 app.post("/api/news", (req, res) => {
   const { title, subtitle, description, date, author, picture } = req.body;
@@ -276,6 +291,29 @@ app.post("/api/news", (req, res) => {
         message: "News added successfully",
         insertId: results.insertId,
       });
+    }
+  });
+});
+
+app.get("/api/news/:id", (req, res) => {
+  // Retrieve the ID from the request parameters
+  const newsId = req.params.id; // Construct the SQL query to fetch the specific news article
+
+  const query = "SELECT * FROM NewsPage WHERE ID = ?"; // Query the database, passing the newsId to prevent SQL injection
+
+  connection.query(query, [newsId], (err, results) => {
+    if (err) {
+      console.error("Error fetching news article:", err);
+      res.status(500).json({ error: "Internal Server Error" });
+    } else {
+      // Check if we got a result
+      if (results.length > 0) {
+        // Send the first (and should be only) entry from the results
+        res.status(200).json(results[0]);
+      } else {
+        // If no results, the article with this ID does not exist
+        res.status(404).json({ error: "News article not found" });
+      }
     }
   });
 });
