@@ -2,7 +2,11 @@ import express from "express";
 import bodyParser from "body-parser";
 import mysql from "mysql";
 import bcrypt from "bcrypt";
-import { getTopLosersAndWinners } from "./controller/marketController.js";
+import {
+  getTopLosersAndWinners,
+  getTopVolumeStocks,
+  getTopVolumeTraded,
+} from "./controller/marketController.js";
 import { fetchAllData } from "./controller/dataFetcher.js"; // import the function
 
 const app = express();
@@ -224,12 +228,22 @@ app.post("/api/login", async (req, res) => {
 
 // Market API
 // Get top losers and winners for NASDAQ 100
-app.get("/api/nasdaq", async (req, res) => {
+app.get("/api/stocks/movers", async (req, res) => {
   try {
     const { topLosers, topWinners } = await getTopLosersAndWinners();
     res.status(200).json({ topWinners, topLosers });
   } catch (error) {
     console.error("Error in /api/nasdaq:", error);
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+});
+
+app.get("/api/stocks/top-volume", async (req, res) => {
+  try {
+    const topVolumeTraded = await getTopVolumeTraded();
+    res.status(200).json({ topVolumeTraded });
+  } catch (error) {
+    console.error("Error in /api/stocks/top-volume-traded", error);
     res.status(500).json({ error: "Internal Server Error" });
   }
 });

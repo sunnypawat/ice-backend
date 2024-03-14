@@ -25,7 +25,7 @@ const readCSV = (symbol) => {
   }
 };
 
-const getTopLosersAndWinners = async () => {
+export const getTopLosersAndWinners = async () => {
   let stockDataArray = [];
 
   // Process each symbol
@@ -50,6 +50,26 @@ const getTopLosersAndWinners = async () => {
   return { topWinners, topLosers };
 };
 
+export const getTopVolumeStocks = (stockDataArray) => {
+  // Sort by volume in descending order and slice the top 5
+  const topVolumeStocks = stockDataArray
+    .sort((a, b) => b.volume - a.volume)
+    .slice(0, 5);
+
+  return topVolumeStocks;
+};
+
+export const getTopVolumeTraded = async () => {
+  let stockDataArray = [];
+  for (const symbol of NASDAQ_100_SYMBOLS) {
+    const data = readCSV(symbol);
+    if (data && data.length > 0) {
+      stockDataArray.push(processStockData(symbol, data));
+    }
+  }
+  return getTopVolumeStocks(stockDataArray);
+};
+
 const processStockData = (symbol, data) => {
   // Assumes the ARRAY is sorted (earliest to latest)
   const earliestRecord = data[0];
@@ -58,14 +78,16 @@ const processStockData = (symbol, data) => {
   const openingPrice = parseFloat(earliestRecord.OPEN);
   const closingPrice = parseFloat(latestRecord.CLOSE);
   const percentageChange = ((closingPrice - openingPrice) / openingPrice) * 100;
+  const totalVolume = data.reduce(
+    (acc, record) => acc + Number(record.VOLUME),
+    0
+  );
 
   return {
     symbol,
     openingPrice,
     closingPrice,
     percentageChange: percentageChange.toFixed(2),
+    volume: totalVolume,
   };
 };
-
-// Export the function to be used by server.js
-export { getTopLosersAndWinners };
