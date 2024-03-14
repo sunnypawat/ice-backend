@@ -258,6 +258,7 @@ app.get("/api/news", (req, res) => {
     }
   });
 });
+
 // POST route to create news
 app.post("/api/news", (req, res) => {
   const { title, subtitle, description, date, author, picture } = req.body;
@@ -276,6 +277,29 @@ app.post("/api/news", (req, res) => {
         message: "News added successfully",
         insertId: results.insertId,
       });
+    }
+  });
+});
+
+app.get("/api/news/:id", (req, res) => {
+  // Retrieve the ID from the request parameters
+  const newsId = req.params.id; // Construct the SQL query to fetch the specific news article
+
+  const query = "SELECT * FROM NewsPage WHERE ID = ?"; // Query the database, passing the newsId to prevent SQL injection
+
+  connection.query(query, [newsId], (err, results) => {
+    if (err) {
+      console.error("Error fetching news article:", err);
+      res.status(500).json({ error: "Internal Server Error" });
+    } else {
+      // Check if we got a result
+      if (results.length > 0) {
+        // Send the first (and should be only) entry from the results
+        res.status(200).json(results[0]);
+      } else {
+        // If no results, the article with this ID does not exist
+        res.status(404).json({ error: "News article not found" });
+      }
     }
   });
 });
