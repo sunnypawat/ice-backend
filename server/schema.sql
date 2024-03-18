@@ -39,3 +39,33 @@ CREATE TABLE Subdivisions (
     FOREIGN KEY (course_id) REFERENCES Courses(id)
 );
 
+CREATE TABLE UserCourseProgress (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT,
+    course_id INT,
+    completion_status ENUM('not started', 'in progress', 'completed') DEFAULT 'not started',
+    score INT DEFAULT 0,
+    FOREIGN KEY (user_id) REFERENCES User(id),
+    FOREIGN KEY (course_id) REFERENCES Courses(id)
+);
+
+CREATE TABLE UserModuleProgress (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT,
+    module_id INT,
+    completion_status ENUM('not started', 'in progress', 'completed') DEFAULT 'not started',
+    score INT DEFAULT 0,
+    FOREIGN KEY (user_id) REFERENCES User(id),
+    FOREIGN KEY (module_id) REFERENCES Modules(id)
+);
+
+CREATE TABLE UserContentProgress (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT,
+    content_id INT,
+    completion_status ENUM('not started', 'in progress', 'completed') DEFAULT 'not started',
+    last_accessed DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES User(id),
+    FOREIGN KEY (content_id) REFERENCES Content(id)
+);
+
