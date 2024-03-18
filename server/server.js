@@ -372,6 +372,123 @@ app.get("/api/test/user", (req, res) => {
   }
 });
 
+// Endpoint to update user course status
+app.post("/api/user-progress/course", async (req, res) => {
+  // Ensure the user is logged in by checking for session userId
+  if (!req.session || !req.session.userId) {
+    return res.status(403).json({ error: "User not authenticated" });
+  }
+
+  const userId = req.session.userId;
+  const { courseId, completionStatus, score } = req.body;
+
+  try {
+    const query = `
+      INSERT INTO UserCourseProgress (user_id, course_id, completion_status, score) 
+      VALUES (?, ?, ?, ?) 
+      ON DUPLICATE KEY UPDATE 
+      completion_status = VALUES(completion_status), 
+      score = VALUES(score)
+    `;
+
+    connection.query(
+      query,
+      [userId, courseId, completionStatus, score],
+      (error, results) => {
+        if (error) {
+          console.error("Error updating course status: ", error);
+          res.status(500).json({ error: "Internal Server Error" });
+        } else {
+          res
+            .status(200)
+            .json({ message: "Course status updated successfully" });
+        }
+      }
+    );
+  } catch (error) {
+    console.error("Server error while updating course status: ", error);
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+});
+
+// Endpoint to update user module status
+app.post("/api/user-progress/module", async (req, res) => {
+  // Ensure the user is logged in by checking for session userId
+  if (!req.session || !req.session.userId) {
+    return res.status(403).json({ error: "User not authenticated" });
+  }
+
+  const userId = req.session.userId;
+  const { moduleId, completionStatus, score } = req.body;
+
+  try {
+    const query = `
+      INSERT INTO UserModuleProgress (user_id, module_id, completion_status, score) 
+      VALUES (?, ?, ?, ?) 
+      ON DUPLICATE KEY UPDATE 
+      completion_status = VALUES(completion_status), 
+      score = VALUES(score)
+    `;
+
+    connection.query(
+      query,
+      [userId, moduleId, completionStatus, score],
+      (error, results) => {
+        if (error) {
+          console.error("Error updating module status: ", error);
+          res.status(500).json({ error: "Internal Server Error" });
+        } else {
+          res
+            .status(200)
+            .json({ message: "Module status updated successfully" });
+        }
+      }
+    );
+  } catch (error) {
+    console.error("Server error while updating module status: ", error);
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+});
+
+// Endpoint to update user content status
+app.post("/api/user-progress/content", async (req, res) => {
+  // Ensure the user is logged in by checking for session userId
+  if (!req.session || !req.session.userId) {
+    return res.status(403).json({ error: "User not authenticated" });
+  }
+
+  const userId = req.session.userId;
+  const { contentId, completionStatus, score } = req.body;
+
+  try {
+    const query = `
+      INSERT INTO UserContentProgress (user_id, content_id, completion_status, score) 
+      VALUES (?, ?, ?, ?) 
+      ON DUPLICATE KEY UPDATE 
+      completion_status = VALUES(completion_status), 
+      score = VALUES(score)
+    `;
+
+    connection.query(
+      query,
+      [userId, contentId, completionStatus, score],
+      (error, results) => {
+        if (error) {
+          console.error("Error updating content status: ", error);
+          res.status(500).json({ error: "Internal Server Error" });
+        } else {
+          res
+            .status(200)
+            .json({ message: "Content status updated successfully" });
+        }
+      }
+    );
+  } catch (error) {
+    console.error("Server error while updating content status: ", error);
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+});
+
 // Market API
 // Get top losers and winners for NASDAQ 100
 app.get("/api/stocks/movers", async (req, res) => {
