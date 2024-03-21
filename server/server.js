@@ -2,12 +2,14 @@ import express from "express";
 import bodyParser from "body-parser";
 import mysql from "mysql";
 import bcrypt from "bcrypt";
+import session from "express-session";
+import cookieParser from "cookie-parser";
 import {
   getTopLosersAndWinners,
   getTopVolumeStocks,
   getTopVolumeTraded,
 } from "./controller/marketController.js";
-import { fetchAllData } from "./controller/dataFetcher.js"; // import the function
+import { fetchAllData } from "./controller/dataFetcher.js";
 
 const app = express();
 const PORT = 8080;
@@ -274,7 +276,24 @@ app.post("/api/users", async (req, res) => {
   }
 });
 
-// Login route
+// Setting up cookie-parser
+app.use(cookieParser());
+
+// Setting up express-session
+app.use(
+  session({
+    secret: "LAJBKJF213HOUF8FDIA79STDV12KASF", // This should be a long, random string to keep sessions secure
+    resave: false,
+    saveUninitialized: true,
+    cookie: {
+      httpOnly: true, // This helps prevent client-side script from accessing the data
+      secure: process.env.NODE_ENV === "production", // Set secure to true if using https
+      maxAge: 24 * 60 * 60 * 1000, // 24 hours in milliseconds
+    },
+  })
+);
+
+// Login endpoint
 app.post("/api/login", async (req, res) => {
   try {
     const { username, password } = req.body;
@@ -294,12 +313,12 @@ app.post("/api/login", async (req, res) => {
       }
 
       // Verify the password
-      const isPasswordValid = await bcrypt.compare(
-        password,
-        results[0].password
-      );
+      const user = results[0];
+      const isPasswordValid = await bcrypt.compare(password, user.password);
 
       if (isPasswordValid) {
+        // Upon login, establish a session
+        req.session.userId = user.id; // Assign the user's ID to the session
         res.status(200).json({ message: "Login successful" });
       } else {
         res.status(401).json({ error: "Invalid username or password" });
@@ -307,6 +326,165 @@ app.post("/api/login", async (req, res) => {
     });
   } catch (error) {
     console.error("Error during login:", error);
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+});
+
+// Make sure to add a logout endpoint to destroy the session
+app.post("/api/logout", function (req, res) {
+  req.session.destroy(function (error) {
+    if (error) {
+      res.status(500).json({ error: "Could not log out, please try again" });
+    } else {
+      res.status(200).json({ message: "Logout successful" });
+    }
+  });
+});
+
+app.get("/api/test/user", (req, res) => {
+  // Check if the session exists and has user info
+  if (req.session && req.session.userId) {
+    const userId = req.session.userId;
+
+    // Look up the user in the database to get their username
+    const query = "SELECT id, username FROM `User` WHERE id = ?";
+    connection.query(query, [userId], (error, results) => {
+      if (error) {
+        console.error("Error fetching user:", error);
+        res.status(500).json({ error: "Internal Server Error" });
+        return;
+      }
+
+      // Check if the user exists
+      if (results.length === 0) {
+        res.status(404).json({ error: "User not found" });
+        return;
+      }
+
+      // Return the user information
+      const user = results[0];
+      console.log("User " + user.id + " : " + user.username + " is connected");
+      res.status(200).json({ userId: user.id, username: user.username });
+    });
+  } else {
+    // If there's no session or userId in the session, return an error
+    res.status(403).json({ error: "No active session or user information" });
+  }
+});
+
+// Endpoint to update user course status
+app.post("/api/user-progress/course", async (req, res) => {
+  // Ensure the user is logged in by checking for session userId
+  if (!req.session || !req.session.userId) {
+    return res.status(403).json({ error: "User not authenticated" });
+  }
+
+  const userId = req.session.userId;
+  const { courseId, completionStatus, score } = req.body;
+
+  try {
+    const query = `
+      INSERT INTO UserCourseProgress (user_id, course_id, completion_status, score) 
+      VALUES (?, ?, ?, ?) 
+      ON DUPLICATE KEY UPDATE 
+      completion_status = VALUES(completion_status), 
+      score = VALUES(score)
+    `;
+
+    connection.query(
+      query,
+      [userId, courseId, completionStatus, score],
+      (error, results) => {
+        if (error) {
+          console.error("Error updating course status: ", error);
+          res.status(500).json({ error: "Internal Server Error" });
+        } else {
+          res
+            .status(200)
+            .json({ message: "Course status updated successfully" });
+        }
+      }
+    );
+  } catch (error) {
+    console.error("Server error while updating course status: ", error);
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+});
+
+// Endpoint to update user module status
+app.post("/api/user-progress/module", async (req, res) => {
+  // Ensure the user is logged in by checking for session userId
+  if (!req.session || !req.session.userId) {
+    return res.status(403).json({ error: "User not authenticated" });
+  }
+
+  const userId = req.session.userId;
+  const { moduleId, completionStatus, score } = req.body;
+
+  try {
+    const query = `
+      INSERT INTO UserModuleProgress (user_id, module_id, completion_status, score) 
+      VALUES (?, ?, ?, ?) 
+      ON DUPLICATE KEY UPDATE 
+      completion_status = VALUES(completion_status), 
+      score = VALUES(score)
+    `;
+
+    connection.query(
+      query,
+      [userId, moduleId, completionStatus, score],
+      (error, results) => {
+        if (error) {
+          console.error("Error updating module status: ", error);
+          res.status(500).json({ error: "Internal Server Error" });
+        } else {
+          res
+            .status(200)
+            .json({ message: "Module status updated successfully" });
+        }
+      }
+    );
+  } catch (error) {
+    console.error("Server error while updating module status: ", error);
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+});
+
+// Endpoint to update user content status
+app.post("/api/user-progress/content", async (req, res) => {
+  // Ensure the user is logged in by checking for session userId
+  if (!req.session || !req.session.userId) {
+    return res.status(403).json({ error: "User not authenticated" });
+  }
+
+  const userId = req.session.userId;
+  const { contentId, completionStatus, score } = req.body;
+
+  try {
+    const query = `
+      INSERT INTO UserContentProgress (user_id, content_id, completion_status, score) 
+      VALUES (?, ?, ?, ?) 
+      ON DUPLICATE KEY UPDATE 
+      completion_status = VALUES(completion_status), 
+      score = VALUES(score)
+    `;
+
+    connection.query(
+      query,
+      [userId, contentId, completionStatus, score],
+      (error, results) => {
+        if (error) {
+          console.error("Error updating content status: ", error);
+          res.status(500).json({ error: "Internal Server Error" });
+        } else {
+          res
+            .status(200)
+            .json({ message: "Content status updated successfully" });
+        }
+      }
+    );
+  } catch (error) {
+    console.error("Server error while updating content status: ", error);
     res.status(500).json({ error: "Internal Server Error" });
   }
 });
