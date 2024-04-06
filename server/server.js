@@ -10,11 +10,14 @@ import {
   getTopVolumeTraded,
 } from "./controller/marketController.js";
 import { fetchAllData } from "./controller/dataFetcher.js";
+import cors from 'cors';
+
 
 const app = express();
 const PORT = 8080;
 
 app.use(bodyParser.json());
+app.use(cors());
 
 const dbConfig = {
   host: "localhost",
