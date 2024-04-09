@@ -8,6 +8,7 @@ import {
   getTopLosersAndWinners,
   getTopVolumeStocks,
   getTopVolumeTraded,
+  getAllStockData,
 } from "./controller/marketController.js";
 import { fetchAllData } from "./controller/dataFetcher.js";
 import { promisify } from "util";
@@ -648,6 +649,17 @@ app.get("/api/fetch-nasdaq-data", async (req, res) => {
     res.status(200).json({ message: "NASDAQ data fetched successfully" });
   } catch (error) {
     console.error("Error fetching NASDAQ data:", error);
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+});
+
+//get all stock data
+app.get("/api/stocks/all-data", async (req, res) => {
+  try {
+    const allStockData = await getAllStockData();
+    res.status(200).json(allStockData);
+  } catch (error) {
+    console.error("Error fetching all stocks data", error);
     res.status(500).json({ error: "Internal Server Error" });
   }
 });
