@@ -91,3 +91,40 @@ const processStockData = (symbol, data) => {
     volume: totalVolume,
   };
 };
+
+const getStockData = (symbol) => {
+  try {
+    const filePath = path.join(PATH_TO_CSV_FILES, `${symbol}.csv`);
+    const csvString = fs.readFileSync(filePath, { encoding: "utf-8" });
+    const records = parse(csvString, { columns: true, skip_empty_lines: true });
+
+    if (!records || records.length === 0) {
+      return null;
+    }
+
+    const latestRecord = records[records.length - 1];
+    const totalVolume = records.reduce(
+      (acc, record) => acc + Number(record.VOLUME),
+      0
+    );
+
+    return {
+      symbol,
+      open: latestRecord.OPEN,
+      high: latestRecord.HIGH,
+      low: latestRecord.LOW,
+      close: latestRecord.CLOSE,
+      volume: totalVolume.toString(),
+    };
+  } catch (error) {
+    console.error(`Error processing data for symbol ${symbol}:`, error);
+    return null;
+  }
+};
+
+export const getAllStockData = async () => {
+  const allStocksData = NASDAQ_100_SYMBOLS.map((symbol) =>
+    getStockData(symbol)
+  ).filter(Boolean);
+  return allStocksData;
+};
