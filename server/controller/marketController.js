@@ -122,6 +122,50 @@ const getStockData = (symbol) => {
   }
 };
 
+export const getPreviousCloseTopFive = async () => {
+  let stockDataArray = [];
+
+  for (const symbol of NASDAQ_100_SYMBOLS) {
+    const data = readCSV(symbol);
+
+    if (data && data.length > 0) {
+      // Assuming the first record in the array is the oldest
+      const previousCloseData = {
+        symbol: symbol,
+        previousClose: parseFloat(data[0].CLOSE), // Assuming data is sorted with the oldest first
+      };
+
+      stockDataArray.push(previousCloseData);
+    }
+  }
+
+  // Sort by previousClose in descending order and return the top 5
+  return stockDataArray
+    .sort((a, b) => b.previousClose - a.previousClose)
+    .slice(0, 5);
+};
+
+export const getOpeningTopFive = async () => {
+  let stockDataArray = [];
+
+  for (const symbol of NASDAQ_100_SYMBOLS) {
+    const data = readCSV(symbol);
+
+    if (data && data.length > 0) {
+      // Assuming the first record in the array is the oldest
+      const openingData = {
+        symbol: symbol,
+        opening: parseFloat(data[0].OPEN), // Assuming data is sorted with the oldest first
+      };
+
+      stockDataArray.push(openingData);
+    }
+  }
+
+  // Sort by opening in descending order and return the top 5
+  return stockDataArray.sort((a, b) => b.opening - a.opening).slice(0, 5);
+};
+
 export const getAllStockData = async () => {
   const allStocksData = NASDAQ_100_SYMBOLS.map((symbol) =>
     getStockData(symbol)
