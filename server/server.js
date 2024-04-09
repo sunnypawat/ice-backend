@@ -489,6 +489,59 @@ app.post("/api/user-progress/content", async (req, res) => {
   }
 });
 
+//quiz api
+app.get("/api/quiz/:quizId", (req, res) => {
+  const { quizId } = req.params;
+
+  const query = "SELECT * FROM Quizzes WHERE quiz_id = ?";
+  connection.query(query, [quizId], (error, results) => {
+    if (error) {
+      console.error("Error fetching quiz:", error);
+      return res.status(500).json({ error: "Internal Server Error" });
+    }
+    if (results.length === 0) {
+      return res.status(404).json({ message: "Quiz not found" });
+    }
+    res.status(200).json(results[0]);
+  });
+});
+
+app.post("/api/quiz/:quizId/submit", (req, res) => {
+  if (!req.session || !req.session.userId) {
+    return res.status(403).json({ error: "User not authenticated" });
+  }
+  const { quizId } = req.params;
+  const { userAnswer } = req.body;
+  const userId = req.session.userId;
+
+  // This query checks the answer and updates the score.
+  const query = "CALL SubmitUserAnswer(?, ?, ?)"; // Assuming you've created a Stored Procedure
+
+  connection.query(query, [quizId, userId, userAnswer], (error, results) => {
+    if (error) {
+      console.error("Error submitting answer:", error);
+      return res.status(500).json({ error: "Internal Server Error" });
+    }
+    res.status(200).json({ message: "Answer submitted successfully", results });
+  });
+});
+
+app.get("/api/quiz/:quizId/answer", (req, res) => {
+  const { quizId } = req.params;
+
+  const query = "SELECT quiz_correct_answer FROM Quizzes WHERE quiz_id = ?";
+  connection.query(query, [quizId], (error, results) => {
+    if (error) {
+      console.error("Error fetching correct answer:", error);
+      return res.status(500).json({ error: "Internal Server Error" });
+    }
+    if (results.length === 0) {
+      return res.status(404).json({ error: "Correct answer not found" });
+    }
+    res.status(200).json({ correctAnswer: results[0].quiz_correct_answer });
+  });
+});
+
 // Market API
 // Get top losers and winners for NASDAQ 100
 app.get("/api/stocks/movers", async (req, res) => {
