@@ -9,6 +9,8 @@ import {
   getTopVolumeStocks,
   getTopVolumeTraded,
   getAllStockData,
+  getPreviousCloseTopFive,
+  getOpeningTopFive,
 } from "./controller/marketController.js";
 import { fetchAllData } from "./controller/dataFetcher.js";
 import { promisify } from "util";
@@ -660,6 +662,24 @@ app.get("/api/stocks/all-data", async (req, res) => {
     res.status(200).json(allStockData);
   } catch (error) {
     console.error("Error fetching all stocks data", error);
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+});
+
+app.get("/api/stocks/key-metrics", async (req, res) => {
+  try {
+    const stockDataArray = await getAllStockData(); // Get the data for all stocks
+    const topVolumeTraded = getTopVolumeStocks(stockDataArray);
+    const previousCloseTopFive = await getPreviousCloseTopFive(stockDataArray);
+    const openingTopFive = await getOpeningTopFive(stockDataArray);
+
+    res.status(200).json({
+      topVolumeTraded,
+      previousCloseTopFive,
+      openingTopFive,
+    });
+  } catch (error) {
+    console.error("Error in /api/stocks/key-metrics", error);
     res.status(500).json({ error: "Internal Server Error" });
   }
 });
