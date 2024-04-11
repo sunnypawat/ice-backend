@@ -13,12 +13,14 @@ import {
   getOpeningTopFive,
 } from "./controller/marketController.js";
 import { fetchAllData } from "./controller/dataFetcher.js";
+import cors from "cors";
 import { promisify } from "util";
 
 const app = express();
 const PORT = 8080;
 
 app.use(bodyParser.json());
+app.use(cors());
 
 const dbConfig = {
   host: "localhost",
@@ -38,47 +40,6 @@ connection.connect((err) => {
 });
 
 connection.query = promisify(connection.query);
-
-// Create Article
-app.post("/api/articles", async (req, res) => {
-  try {
-    const { title, content, imageLink } = req.body;
-
-    const query =
-      "INSERT INTO Article (title, content, imageLink) VALUES (?, ?, ?)";
-
-    connection.query(query, [title, content, imageLink], (error, results) => {
-      if (error) {
-        console.error("Error creating article:", error);
-        res.status(500).json({ error: "Internal Server Error" });
-      } else {
-        res.status(201).json({ message: "Article created successfully" });
-      }
-    });
-  } catch (error) {
-    console.error("Error creating article:", error);
-    res.status(500).json({ error: "Internal Server Error" });
-  }
-});
-
-// Get Articles
-app.get("/api/articles", async (req, res) => {
-  try {
-    const query = "SELECT * FROM Article";
-
-    connection.query(query, (error, results) => {
-      if (error) {
-        console.error("Error getting articles:", error);
-        res.status(500).json({ error: "Internal Server Error" });
-      } else {
-        res.status(200).json(results);
-      }
-    });
-  } catch (error) {
-    console.error("Error getting articles:", error);
-    res.status(500).json({ error: "Internal Server Error" });
-  }
-});
 
 // Add Course
 app.post("/api/courses", async (req, res) => {
@@ -265,8 +226,25 @@ app.get("/api/modules/:moduleId", async (req, res) => {
 app.post("/api/users", async (req, res) => {
   try {
     const { username, password } = req.body;
+
+    // Validate the username length
+    if (username.length <= 3) {
+      return res
+        .status(402)
+        .json({ error: "Username must be longer than 3 characters." });
+    }
+
+    // Validate the password length
+    if (password.length <= 7) {
+      return res
+        .status(403)
+        .json({ error: "Password must be longer than 7 characters." });
+    }
+
+    // Hash the password using bcrypt
     const hashedPassword = await bcrypt.hash(password, 10);
 
+    // Insert the new user into the database
     const query = "INSERT INTO `User` (username, password) VALUES (?, ?)";
     connection.query(query, [username, hashedPassword], (error, results) => {
       if (error) {
@@ -684,6 +662,80 @@ app.get("/api/stocks/key-metrics", async (req, res) => {
   }
 });
 
+// POST route to create article
+app.post("/api/articles", (req, res) => {
+  const { news_id, content, imageLink } = req.body;
+  const query =
+    "INSERT INTO Article (news_id, content, imageLink) VALUES (?, ?, ?)";
+
+  connection.query(query, [news_id, content, imageLink], (err, results) => {
+    if (err) {
+      console.error("Error creating article:", err);
+      res.status(500).json({ error: "Internal Server Error" });
+    } else {
+      res.status(201).json({ message: "Article created successfully" });
+    }
+  });
+});
+
+// GET route to retrieve a single article by news_id
+app.get("/api/articles/:news_id", (req, res) => {
+  const newsId = req.params.news_id;
+
+  const query = "SELECT * FROM Article WHERE news_id = ?";
+
+  connection.query(query, [newsId], (err, results) => {
+    if (err) {
+      console.error("Error fetching article by news ID:", err);
+      res.status(500).json({ error: "Internal Server Error" });
+    } else {
+      if (results.length > 0) {
+        // If multiple articles are tied to a single news_id, decide how you want to handle it
+        // This will return the first one found
+        res.status(200).json(results[0]);
+      } else {
+        res
+          .status(404)
+          .json({ error: "Article with provided news ID not found" });
+      }
+    }
+  });
+});
+
+// POST route to create news and auto-create an associated article
+app.post("/api/news", (req, res) => {
+  const { title, subtitle, description, date, author, picture } = req.body;
+
+  const query =
+    "INSERT INTO NewsPage (Title, Subtitle, Description, Date, Author, Picture) VALUES (?, ?, ?, ?, ?, ?)";
+
+  const values = [title, subtitle, description, date, author, picture];
+
+  connection.query(query, values, (err, results) => {
+    if (err) {
+      res.status(500).json({ error: "Internal Server Error", details: err });
+    } else {
+      // News added successfully, now create an article with the news_id, author, and title
+      const articleQuery =
+        "INSERT INTO Article (news_id, author, title) VALUES (?, ?, ?)";
+      const articleValues = [results.insertId, author, title];
+
+      connection.query(articleQuery, articleValues, (error, articleResults) => {
+        if (error) {
+          console.error("Error creating article:", error);
+          res.status(500).json({ error: "Internal Server Error" });
+        } else {
+          res.status(201).json({
+            message: "News and initial article added successfully",
+            newsId: results.insertId,
+            articleId: articleResults.insertId,
+          });
+        }
+      });
+    }
+  });
+});
+
 // GET route to retrieve news
 app.get("/api/news", (req, res) => {
   const query = "SELECT * FROM NewsPage ORDER BY Date DESC LIMIT 10";
@@ -694,51 +746,6 @@ app.get("/api/news", (req, res) => {
       res.status(500).json({ error: "Internal Server Error" });
     } else {
       res.status(200).json(results);
-    }
-  });
-});
-
-// POST route to create news
-app.post("/api/news", (req, res) => {
-  const { title, subtitle, description, date, author, picture } = req.body;
-  // Construct the INSERT statement with proper escaping
-  const query =
-    "INSERT INTO NewsPage (Title, Subtitle, Description, Date, Author, Picture) VALUES (?, ?, ?, ?, ?, ?)";
-
-  // Use array to avoid SQL injection
-  const values = [title, subtitle, description, date, author, picture];
-
-  connection.query(query, values, (err, results) => {
-    if (err) {
-      res.status(500).json({ error: "Internal Server Error", details: err });
-    } else {
-      res.status(201).json({
-        message: "News added successfully",
-        insertId: results.insertId,
-      });
-    }
-  });
-});
-
-app.get("/api/news/:id", (req, res) => {
-  // Retrieve the ID from the request parameters
-  const newsId = req.params.id; // Construct the SQL query to fetch the specific news article
-
-  const query = "SELECT * FROM NewsPage WHERE ID = ?"; // Query the database, passing the newsId to prevent SQL injection
-
-  connection.query(query, [newsId], (err, results) => {
-    if (err) {
-      console.error("Error fetching news article:", err);
-      res.status(500).json({ error: "Internal Server Error" });
-    } else {
-      // Check if we got a result
-      if (results.length > 0) {
-        // Send the first (and should be only) entry from the results
-        res.status(200).json(results[0]);
-      } else {
-        // If no results, the article with this ID does not exist
-        res.status(404).json({ error: "News article not found" });
-      }
     }
   });
 });

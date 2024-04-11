@@ -3,11 +3,13 @@ USE projectICE_db
 
 CREATE TABLE Article (
     id INT AUTO_INCREMENT PRIMARY KEY,
-    title VARCHAR(255),
+    news_id INT, -- Foreign key to link to a NewsPage row
+    title VARCHAR(255), -- This will be inherited from NewsPage, you might want to remove this if you only want the link via news_id
     content TEXT,
-    imageLink VARCHAR(255)
+    imageLink TEXT, -- Changed to TEXT to hold a list of image links, assume list is stored as a serialized array or JSON
+    author VARCHAR(100), -- This will be inherited from NewsPage, you might want to remove this if you only want the link via news_id
+    FOREIGN KEY (news_id) REFERENCES NewsPage(ID) -- Establishes the foreign key relationship
 );
-
 CREATE TABLE User (
     id INT AUTO_INCREMENT PRIMARY KEY,
     username VARCHAR(50) UNIQUE,
