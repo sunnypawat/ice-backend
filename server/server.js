@@ -282,6 +282,43 @@ app.post("/api/users", async (req, res) => {
   }
 });
 
+app.post("/api/users", async (req, res) => {
+  try {
+    const { username, password } = req.body;
+
+    // Validate the username length
+    if (username.length <= 3) {
+      return res
+        .status(400)
+        .json({ error: "Username must be longer than 3 characters." });
+    }
+
+    // Validate the password length
+    if (password.length <= 7) {
+      return res
+        .status(400)
+        .json({ error: "Password must be longer than 7 characters." });
+    }
+
+    // Hash the password using bcrypt
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    // Insert the new user into the database
+    const query = "INSERT INTO `User` (username, password) VALUES (?, ?)";
+    connection.query(query, [username, hashedPassword], (error, results) => {
+      if (error) {
+        console.error("Error creating user:", error);
+        res.status(500).json({ error: "Internal Server Error" });
+      } else {
+        res.status(201).json({ message: "User created successfully" });
+      }
+    });
+  } catch (error) {
+    console.error("Error creating user:", error);
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+});
+
 // Setting up cookie-parser
 app.use(cookieParser());
 
