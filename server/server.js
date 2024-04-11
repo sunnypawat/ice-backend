@@ -10,8 +10,7 @@ import {
   getTopVolumeTraded,
 } from "./controller/marketController.js";
 import { fetchAllData } from "./controller/dataFetcher.js";
-import cors from 'cors';
-
+import cors from "cors";
 
 const app = express();
 const PORT = 8080;
@@ -262,8 +261,25 @@ app.get("/api/modules/:moduleId", async (req, res) => {
 app.post("/api/users", async (req, res) => {
   try {
     const { username, password } = req.body;
+
+    // Validate the username length
+    if (username.length <= 3) {
+      return res
+        .status(400)
+        .json({ error: "Username must be longer than 3 characters." });
+    }
+
+    // Validate the password length
+    if (password.length <= 7) {
+      return res
+        .status(400)
+        .json({ error: "Password must be longer than 7 characters." });
+    }
+
+    // Hash the password using bcrypt
     const hashedPassword = await bcrypt.hash(password, 10);
 
+    // Insert the new user into the database
     const query = "INSERT INTO `User` (username, password) VALUES (?, ?)";
     connection.query(query, [username, hashedPassword], (error, results) => {
       if (error) {
