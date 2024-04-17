@@ -16,7 +16,10 @@ const app = express();
 const PORT = 8080;
 
 app.use(bodyParser.json());
-app.use(cors());
+app.use(cors({
+  origin: ['http://localhost:3000'], // This should match your frontend URL
+  credentials: true // This is required to send cookies across domains
+}));
 
 const dbConfig = {
   host: "localhost",
@@ -265,14 +268,14 @@ app.post("/api/users", async (req, res) => {
     // Validate the username length
     if (username.length <= 3) {
       return res
-        .status(400)
+        .status(402)
         .json({ error: "Username must be longer than 3 characters." });
     }
 
     // Validate the password length
     if (password.length <= 7) {
       return res
-        .status(400)
+        .status(403)
         .json({ error: "Password must be longer than 7 characters." });
     }
 
