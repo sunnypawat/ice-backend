@@ -20,7 +20,10 @@ const app = express();
 const PORT = 8080;
 
 app.use(bodyParser.json());
-app.use(cors());
+app.use(cors({
+  origin: ['http://localhost:3000'], // This should match your frontend URL
+  credentials: true // This is required to send cookies across domains
+}));
 
 const dbConfig = {
   host: "localhost",
