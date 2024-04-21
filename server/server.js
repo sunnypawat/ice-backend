@@ -28,10 +28,12 @@ app.use(
 );
 
 const dbConfig = {
-  host: "projecticedb.c5csiku6esgx.ap-southeast-2.rds.amazonaws.com",
+  // host: "projecticedb.c5csiku6esgx.ap-southeast-2.rds.amazonaws.com",
+  host: "localhost",
   user: "root",
   password: "12345678",
-  database: "projecticedb",
+  // database: "projecticedb",
+  database: "projectICE_db",
 };
 
 const connection = mysql.createConnection(dbConfig);
@@ -474,6 +476,135 @@ app.post("/api/user-progress/content", async (req, res) => {
     );
   } catch (error) {
     console.error("Server error while updating content status: ", error);
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+});
+
+app.get("/api/user-progress/course", async (req, res) => {
+  if (!req.session || !req.session.userId) {
+    return res.status(403).json({ error: "User not authenticated" });
+  }
+
+  const userId = req.session.userId;
+
+  try {
+    const query =
+      "SELECT course_id, completion_status FROM UserCourseProgress WHERE user_id = ?";
+
+    connection.query(query, [userId], (error, results) => {
+      if (error) {
+        console.error("Error fetching course progress:", error);
+        res.status(500).json({ error: "Internal Server Error" });
+      } else {
+        res.status(200).json(results);
+      }
+    });
+  } catch (error) {
+    console.error("Server error while fetching course progress:", error);
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+});
+
+app.get("/api/user-progress/course/:course_id/modules", async (req, res) => {
+  if (!req.session || !req.session.userId) {
+    return res.status(403).json({ error: "User not authenticated" });
+  }
+
+  const userId = req.session.userId;
+  const courseId = req.params.course_id;
+
+  try {
+    const query = `
+      SELECT module_id, completion_status 
+      FROM UserModuleProgress 
+      WHERE user_id = ? AND course_id = ?
+    `;
+
+    connection.query(query, [userId, courseId], (error, results) => {
+      if (error) {
+        console.error("Error fetching module progress:", error);
+        res.status(500).json({ error: "Internal Server Error" });
+      } else {
+        res.status(200).json(results);
+      }
+    });
+  } catch (error) {
+    console.error("Server error while fetching module progress:", error);
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+});
+
+app.get(
+  "/api/user-progress/course/:course_id/module/:module_id/contents",
+  async (req, res) => {
+    if (!req.session || !req.session.userId) {
+      return res.status(403).json({ error: "User not authenticated" });
+    }
+
+    const userId = req.session.userId;
+    const courseId = req.params.course_id;
+    const moduleId = req.params.module_id;
+
+    try {
+      const query = `
+      SELECT content_id, completion_status 
+      FROM UserContentProgress 
+      WHERE user_id = ? AND course_id = ? AND module_id = ?
+    `;
+
+      connection.query(
+        query,
+        [userId, courseId, moduleId],
+        (error, results) => {
+          if (error) {
+            console.error("Error fetching content progress:", error);
+            res.status(500).json({ error: "Internal Server Error" });
+          } else {
+            res.status(200).json(results);
+          }
+        }
+      );
+    } catch (error) {
+      console.error("Server error while fetching content progress:", error);
+      res.status(500).json({ error: "Internal Server Error" });
+    }
+  }
+);
+
+app.get("/api/user-courses/completion-status", async (req, res) => {
+  if (!req.session || !req.session.userId) {
+    return res.status(403).json({ error: "User not authenticated" });
+  }
+
+  const userId = req.session.userId;
+
+  try {
+    // We assume that the Courses table exists with columns 'id' and 'name'
+    // and that 'id' from Courses table is referred to by 'course_id' in the UserCourseProgress table.
+    // Adjust the ON condition according to your schema for keys
+    const query = `
+      SELECT c.title AS level, ucp.completion_status AS access
+      FROM Courses c
+      JOIN UserCourseProgress ucp ON c.id = ucp.course_id
+      WHERE ucp.user_id = ?
+    `;
+
+    connection.query(query, [userId], (error, results) => {
+      if (error) {
+        console.error(
+          "Error fetching user courses with completion status:",
+          error
+        );
+        res.status(500).json({ error: "Internal Server Error" });
+      } else {
+        res.status(200).json(results);
+      }
+    });
+  } catch (error) {
+    console.error(
+      "Server error while fetching user courses completion status:",
+      error
+    );
     res.status(500).json({ error: "Internal Server Error" });
   }
 });
