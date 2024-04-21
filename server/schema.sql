@@ -33,12 +33,20 @@ CREATE TABLE Courses (
     picture VARCHAR(255)
 );
 
-CREATE TABLE Subdivisions (
+CREATE TABLE Modules (
     id INT AUTO_INCREMENT PRIMARY KEY,
     course_id INT,
     subdivision_title VARCHAR(50) NOT NULL,
     subdivision_description TEXT,
     FOREIGN KEY (course_id) REFERENCES Courses(id)
+);
+
+CREATE TABLE Content (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    module_id INT,
+    content_title VARCHAR(255) NOT NULL,
+    body TEXT,
+    FOREIGN KEY (module_id) REFERENCES Modules(id)
 );
 
 CREATE TABLE UserCourseProgress (
@@ -54,20 +62,26 @@ CREATE TABLE UserCourseProgress (
 CREATE TABLE UserModuleProgress (
     id INT AUTO_INCREMENT PRIMARY KEY,
     user_id INT,
+    course_id INT, -- Direct reference to the Courses table's ID
     module_id INT,
     completion_status ENUM('not started', 'in progress', 'completed') DEFAULT 'not started',
     score INT DEFAULT 0,
-    FOREIGN KEY (user_id) REFERENCES User(id),
-    FOREIGN KEY (module_id) REFERENCES Modules(id)
+    FOREIGN KEY (user_id) REFERENCES Users(id),
+    FOREIGN KEY (module_id) REFERENCES Modules(id),
+    FOREIGN KEY (course_id) REFERENCES Courses(id) -- Direct reference to the Courses primary key
 );
 
 CREATE TABLE UserContentProgress (
     id INT AUTO_INCREMENT PRIMARY KEY,
     user_id INT,
+    course_id INT,
+    module_id INT,
     content_id INT,
     completion_status ENUM('not started', 'in progress', 'completed') DEFAULT 'not started',
-    last_accessed DATETIME DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (user_id) REFERENCES User(id),
+    score INT DEFAULT 0,
+    FOREIGN KEY (user_id) REFERENCES Users(id),
+    FOREIGN KEY (course_id) REFERENCES Courses(id),
+    FOREIGN KEY (module_id) REFERENCES Modules(id),
     FOREIGN KEY (content_id) REFERENCES Content(id)
 );
 
