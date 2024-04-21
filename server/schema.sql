@@ -1,5 +1,5 @@
-CREATE DATABASE projectICE_db;
-USE projectICE_db
+CREATE DATABASE projecticedb;
+USE projecticedb
 
 CREATE TABLE Article (
     id INT AUTO_INCREMENT PRIMARY KEY,

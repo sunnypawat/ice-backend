@@ -20,16 +20,18 @@ const app = express();
 const PORT = 8080;
 
 app.use(bodyParser.json());
-app.use(cors({
-  origin: ['http://localhost:3000'], // This should match your frontend URL
-  credentials: true // This is required to send cookies across domains
-}));
+app.use(
+  cors({
+    origin: ["http://localhost:3000"], // This should match your frontend URL
+    credentials: true, // This is required to send cookies across domains
+  })
+);
 
 const dbConfig = {
-  host: "localhost",
+  host: "projecticedb.c5csiku6esgx.ap-southeast-2.rds.amazonaws.com",
   user: "root",
   password: "12345678",
-  database: "projectICE_db",
+  database: "projecticedb",
 };
 
 const connection = mysql.createConnection(dbConfig);
