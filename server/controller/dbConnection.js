@@ -1,21 +1,23 @@
 // dbConnection.js
 import mysql from "mysql";
+import util from "util";
+import dotenv from "dotenv";
 
-const dbConfig = {
-  host: "localhost",
-  user: "root",
-  password: "12345678",
-  database: "projectICE_db",
-};
+dotenv.config(); // to use values from your .env file
 
-const connection = mysql.createConnection(dbConfig);
-
-connection.connect((err) => {
-  if (err) {
-    console.error("Error connecting to MySQL database:", err);
-  } else {
-    console.log("Connected to MySQL database");
-  }
+const connection = mysql.createConnection({
+  host: process.env.DB_HOST,
+  user: process.env.DB_USER,
+  password: process.env.DB_PASS,
+  database: process.env.DB_NAME,
 });
 
-module.exports = connection;
+// Promisify for Node.js async/await.
+connection.query = util.promisify(connection.query);
+
+connection.connect((err) => {
+  if (err) throw err;
+  console.log("Connected to the MySQL server.");
+});
+
+export default connection;
