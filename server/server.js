@@ -44,7 +44,7 @@ import {
   getStocksTopVolumeTraded,
   getStocksKeyMetrics,
 } from "./controller/marketController.js";
-import { fetchAllData } from "./controller/dataFetcher.js";
+import { fetchNasdaqDataHandler } from "./controller/dataFetcher.js";
 
 const app = express();
 const PORT = 8080;
@@ -116,15 +116,8 @@ app.get("/api/stocks/movers", getMarketMovers);
 app.get("/api/stocks/top-volume", getStocksTopVolumeTraded);
 app.get("/api/stocks/key-metrics", getStocksKeyMetrics);
 
-app.get("/api/fetch-nasdaq-data", async (req, res) => {
-  try {
-    await fetchAllData();
-    res.status(200).json({ message: "NASDAQ data fetched successfully" });
-  } catch (error) {
-    console.error("Error fetching NASDAQ data:", error);
-    res.status(500).json({ error: "Internal Server Error" });
-  }
-});
+//dataFetcher
+app.get("/api/fetch-nasdaq-data", fetchNasdaqDataHandler);
 
 app.listen(PORT, () => {
   const today = new Date();

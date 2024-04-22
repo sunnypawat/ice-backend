@@ -171,7 +171,7 @@ async function saveToCSV(data, symbol) {
 }
 
 // Function to fetch data for all symbols and save each symbol's data to CSV
-export async function fetchAllData() {
+async function fetchAllData() {
   // Keep a counter of the requests
   let requestCounter = 0;
 
@@ -194,3 +194,15 @@ export async function fetchAllData() {
     }
   }
 }
+
+const fetchNasdaqDataHandler = async (req, res) => {
+  try {
+    await fetchAllData();
+    res.status(200).json({ message: "NASDAQ data fetched successfully" });
+  } catch (error) {
+    console.error(`Error fetching NASDAQ data:`, error);
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+};
+
+export { fetchNasdaqDataHandler };
