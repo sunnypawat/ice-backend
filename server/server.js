@@ -119,6 +119,10 @@ app.get("/api/stocks/key-metrics", getStocksKeyMetrics);
 //dataFetcher
 app.get("/api/fetch-nasdaq-data", fetchNasdaqDataHandler);
 
+app.get("/api/home", (req, res) => {
+  res.json({ message: "hello world!" });
+});
+
 app.listen(PORT, () => {
   const today = new Date();
   const date =
