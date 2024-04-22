@@ -19,6 +19,15 @@ import {
   getOneModule,
 } from "./controller/courseController.js";
 import {
+  postCourseProgress,
+  postModuleProgress,
+  postContentProgress,
+  getCourseProgress,
+  getModuleProgress,
+  getContentProgress,
+  getCourseCompletion,
+} from "./controller/userProgressController.js";
+import {
   getTopLosersAndWinners,
   getTopVolumeStocks,
   getTopVolumeTraded,
@@ -65,6 +74,17 @@ app.post("/api/contents", addContent);
 app.get("/api/courses", getCourse);
 app.get("/api/courses/:courseId", getOneCourse); //all Modules in 1 Courses
 app.get("/api/modules/:moduleId", getOneModule); //all Contents in 1 Modules
+//userProgressController
+app.post("/api/user-progress/course", postCourseProgress);
+app.post("/api/user-progress/module", postModuleProgress);
+app.post("/api/user-progress/content", postContentProgress);
+app.get("/api/user-progress/course", getCourseProgress);
+app.get("/api/user-progress/course/:course_id/modules", getModuleProgress);
+app.get(
+  "/api/user-progress/course/:course_id/module/:module_id/contents",
+  getContentProgress
+);
+app.get("/api/user-courses/completion-status", getCourseCompletion);
 
 app.listen(PORT, () => {
   const today = new Date();
