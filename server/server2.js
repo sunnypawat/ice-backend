@@ -28,6 +28,18 @@ import {
   getCourseCompletion,
 } from "./controller/userProgressController.js";
 import {
+  addQuiz,
+  getQuiz,
+  submitQuizAnswer,
+  getQuizAnswer,
+} from "./controller/quizController.js";
+import {
+  postArticle,
+  getArticle,
+  postNews,
+  getNews,
+} from "./controller/articleController.js";
+import {
   getTopLosersAndWinners,
   getTopVolumeStocks,
   getTopVolumeTraded,
@@ -62,11 +74,13 @@ app.use(
 );
 
 // Routes
+
 //userController
 app.post("/api/users", createUser);
 app.post("/api/login", loginUser);
 app.post("/api/logout", logoutUser);
 app.get("/api/test/user", testUser);
+
 //courseController
 app.post("/api/courses", addCourse);
 app.post("/api/modules", addModule);
@@ -74,7 +88,9 @@ app.post("/api/contents", addContent);
 app.get("/api/courses", getCourse);
 app.get("/api/courses/:courseId", getOneCourse); //all Modules in 1 Courses
 app.get("/api/modules/:moduleId", getOneModule); //all Contents in 1 Modules
+
 //userProgressController
+app.get("/api/user-courses/completion-status", getCourseCompletion);
 app.post("/api/user-progress/course", postCourseProgress);
 app.post("/api/user-progress/module", postModuleProgress);
 app.post("/api/user-progress/content", postContentProgress);
@@ -84,7 +100,18 @@ app.get(
   "/api/user-progress/course/:course_id/module/:module_id/contents",
   getContentProgress
 );
-app.get("/api/user-courses/completion-status", getCourseCompletion);
+
+//quizController
+app.post("/api/quiz", addQuiz);
+app.get("/api/quiz/:quizId", getQuiz);
+app.post("/api/quiz/:quizId/submit", submitQuizAnswer);
+app.get("/api/quiz/:quizId/answer", getQuizAnswer);
+
+//articleController
+app.post("/api/articles", postArticle);
+app.get("/api/articles/:news_id", getArticle);
+app.post("/api/news", postNews);
+app.get("/api/news", getNews);
 
 app.listen(PORT, () => {
   const today = new Date();
