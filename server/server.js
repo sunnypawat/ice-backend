@@ -136,7 +136,7 @@ app.get("/api/courses/:courseId", async (req, res) => {
 });
 
 // Add Module (Subdivision)
-app.post("/api/module", async (req, res) => {
+app.post("/api/modules", async (req, res) => {
   try {
     const { courseId, subdivisionTitle, subdivisionDescription } = req.body;
 
